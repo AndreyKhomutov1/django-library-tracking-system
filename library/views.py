@@ -52,3 +52,16 @@ class MemberViewSet(viewsets.ModelViewSet):
 class LoanViewSet(viewsets.ModelViewSet):
     queryset = Loan.objects.all()
     serializer_class = LoanSerializer
+
+    @action(detail=True, methods=['post'])
+    def extend_due_date(self, request, pk=None):
+        days = 14
+        now = timezone.now()
+        book = self.get_object()
+        member_id = request.data.get('member_id')
+        try:
+            loan = Loan.objects.get(book=book, member__id=member_id, due_date__lt=now)
+        except Loan.DoesNotExist:
+            return Response({'error': 'Overdue loan does not exist.'}, status=status.HTTP_400_BAD_REQUEST)
+        loan.due_date = now + days
+        loan.save()
